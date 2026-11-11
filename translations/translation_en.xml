@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<l10n>
+    <texts>
+        <text name="input_BANANAREGROW_MARK" text="Banana Regrow: mark corner"/>
+        <text name="input_BANANAREGROW_CUT" text="Banana Regrow: cut back plants"/>
+        <text name="input_BANANAREGROW_CLEAR" text="Banana Regrow: clear area"/>
+
+        <text name="bananaRegrow_hud_oneCorner" text="Banana Regrow: corner 1 marked. Walk to the opposite corner and mark it too."/>
+        <text name="bananaRegrow_hud_selection" text="Banana Regrow: area %d x %d m, %d banana plants, %d need cutting back"/>
+        <text name="bananaRegrow_hud_cutAll" text=" [cut ALL mode]"/>
+        <text name="bananaRegrow_hud_counting" text="Banana Regrow: counting plants..."/>
+
+        <text name="bananaRegrow_result_cut" text="Banana Regrow: %d banana plants cut back, they regrow from next month"/>
+        <text name="bananaRegrow_result_none" text="Banana Regrow: nothing to cut back (%d plants checked)"/>
+        <text name="bananaRegrow_result_denied" text="Banana Regrow: %d plants on land that is not yours were skipped"/>
+        <text name="bananaRegrow_wholeOrchard" text="Banana Regrow: no area marked, cutting back the whole plantation next to you (%d plants)"/>
+        <text name="bananaRegrow_noOrchard" text="Banana Regrow: no banana plantation nearby. Mark two corners or stand next to the plants."/>
+        <text name="bananaRegrow_noPlants" text="Banana Regrow: no banana plants in the marked area"/>
+        <text name="bananaRegrow_noDlc" text="Banana Regrow: no banana plantations on this map (Beans &amp; Alpacas Pack needed)"/>
+        <text name="bananaRegrow_notReady" text="Banana Regrow: banana growth states not found, see log.txt"/>
+        <text name="bananaRegrow_cleared" text="Banana Regrow: area cleared"/>
+
+        <text name="construction_tab_bananaRegrow" text="Banana Regrow"/>
+        <text name="shopItem_bananaRegrowTool" text="Banana Regrow"/>
+        <text name="function_bananaRegrowTool" text="Mark an area of banana plants and cut them all back so they regrow"/>
+        <text name="bananaRegrow_brush_firstCorner" text="Set first corner"/>
+        <text name="bananaRegrow_brush_secondCorner" text="Set opposite corner"/>
+        <text name="bananaRegrow_brush_cut" text="Cut back %d plants"/>
+        <text name="bananaRegrow_brush_newArea" text="Start a new area"/>
+        <text name="bananaRegrow_brush_removeCorner" text="Remove last corner"/>
+        <text name="bananaRegrow_brush_cutPlantation" text="Harvest and cut back whole plantation (%d plants)"/>
+        <text name="bananaRegrow_brush_hint" text="Click two opposite corners of the banana plants to cut back"/>
+        <text name="bananaRegrow_brush_hintPlantation" text="Banana plantation (%d plants): click two corners, or right click for all of it"/>
+        <text name="bananaRegrow_brush_harvestCut" text="Harvest %d, cut back %d plants"/>
+        <text name="bananaRegrow_hud_ripe" text=", %d ripe (harvested first)"/>
+        <text name="bananaRegrow_result_harvested" text="Banana Regrow: %d plants harvested, %d l bananas went to the washing station"/>
+        <text name="bananaRegrow_result_harvestStopped" text="harvest stopped"/>
+        <text name="bananaRegrow_result_cutShort" text="%d plants cut back"/>
+        <text name="bananaRegrow_harvest_needMachete" text="Banana Regrow: carry the machete to harvest the %d ripe plants too; only cutting back"/>
+        <text name="bananaRegrow_harvest_noStation" text="Banana Regrow: no washing station of your farm has room, the %d ripe plants stay"/>
+        <text name="bananaRegrow_harvest_busy" text="Banana Regrow: another harvest is still running, the %d ripe plants stay"/>
+    </texts>
+</l10n>
