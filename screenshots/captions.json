@@ -1,0 +1,17 @@
+{
+  "2.jpg": {
+    "title": "Shift-P, Landscaping, Banana Regrow",
+    "text": "Point the tool at a plantation to see how many plants it has.",
+    "at": "bottom"
+  },
+  "3.jpg": {
+    "title": "Mark an area",
+    "text": "Click two opposite corners: the area is outlined and its plants are counted.",
+    "at": "bottom"
+  },
+  "4.jpg": {
+    "title": "Harvest and cut back",
+    "text": "Ripe plants are harvested into the washing station, the rest are cut back so they regrow.",
+    "at": "bottom"
+  }
+}
