@@ -140,6 +140,10 @@ python tools/build_zip.py        # dist/FS25_BananaRegrow.zip + GIANTS packaging
   <img src="https://raw.githubusercontent.com/DTM-Mods/.github/main/assets/patch-notes.jpg" alt="Patch notes" width="100%">
 </p>
 
+### 1.2.5.1
+
+- The author now shows as **DTM Mods, Fennell** in the mod list.
+
 ### 1.2.5.0
 
 - First release on GitHub.
