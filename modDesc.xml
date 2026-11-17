@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
-<modDesc descVersion="115" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://validation.gdn.giants-software.com/xml/fs25/modDesc.xsd">
+<modDesc descVersion="116" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://validation.gdn.giants-software.com/xml/fs25/modDesc.xsd">
     <author>DTM Mods, Fennell</author>
-    <version>1.2.5.2</version>
+    <version>1.2.5.3</version>
     <title>
         <en>Banana Regrow</en>
     </title>
@@ -20,9 +20,8 @@ The menus' bottom bar gets extra button slots when a page has more buttons than 
 
 Console: brHarvest [radius|all] harvests the ripe plants around you into the washing station, brCollect [radius] puts banana bunches lying on the ground into it (admins), brCutAll toggles cutting ALL plants in the area (also ripe and growing ones) for a full reset, brInfo writes the plantation's technical details to the log, brDebug toggles debug logging. Research (admins): brProbe and brTrace log how the game harvests with the machete, brRipen [radius] makes your plants around you ripe.
 
-Changelog 1.2.5.2:
-- Meets the GIANTS ModHub checks (TestRunner): textures, icon and modDesc brought up to date.
-- Errors are no longer hidden: they show in the log.]]></en>
+Changelog 1.2.5.3:
+- Updated for the current game version (modDesc version 116).]]></en>
         <de><![CDATA[Eine ganze Bananenplantage auf einmal zurückschneiden, damit sie nachwächst, statt jede Pflanze einzeln mit der Machete zu bearbeiten.
 
 Das Baumenü öffnen (Standard: Umschalt + P), Landschaftsbau > Banana Regrow. Eine Ecke der Fläche und dann die gegenüberliegende Ecke anklicken: Die Fläche wird am Boden angezeigt, Pflanzen, die zurückgeschnitten werden müssen, bekommen eine grüne Markierung, und der Cursor zeigt ihre Anzahl. Ein weiterer Linksklick schneidet sie alle zurück. Rechtsklick nimmt die letzte Ecke zurück. Ohne Markierung schneidet ein Rechtsklick auf eine Plantage die ganze Plantage zurück.
@@ -37,9 +36,8 @@ Die untere Tastenleiste der Menüs bekommt zusätzliche Plätze, wenn eine Seite
 
 Konsole: brHarvest [Radius|all] erntet die reifen Pflanzen um dich herum in die Waschstation, brCollect [Radius] bringt herumliegende Bananenbüschel hinein (Admins), brCutAll schaltet das Schneiden ALLER Pflanzen in der Fläche um (auch reife und wachsende) für einen kompletten Neustart, brInfo schreibt die technischen Daten der Plantage ins Log, brDebug schaltet Debug-Ausgaben um. Forschung (Admins): brProbe und brTrace protokollieren, wie das Spiel mit der Machete erntet, brRipen [Radius] macht die eigenen Pflanzen um dich herum reif.
 
-Changelog 1.2.5.2:
-- Erfüllt die GIANTS-ModHub-Prüfungen (TestRunner): Texturen, Icon und modDesc auf den neuesten Stand gebracht.
-- Fehler werden nicht mehr versteckt und erscheinen im Log.]]></de>
+Changelog 1.2.5.3:
+- An die aktuelle Spielversion angepasst (modDesc-Version 116).]]></de>
     </description>
 
     <iconFilename>icon_bananaRegrow.dds</iconFilename>
