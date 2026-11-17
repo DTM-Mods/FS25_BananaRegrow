@@ -6,13 +6,19 @@
         <en>Banana Regrow</en>
     </title>
     <description>
-        <en><![CDATA[Cut back a whole banana plantation at once so it regrows, instead of swinging the machete at every plant.
+        <en><![CDATA[Category: Landscaping > Banana Regrow (construction menu)
+Price: $0
+Monthly upkeep: none
+Hotkeys (on foot): Left Alt + K marks a corner, Left Alt + L cuts back, Left Alt + J clears the area. Controller: none by default, set them under Settings > Controls.
+Requires: Beans & Alpacas Pack (DLC)
+
+Cut back a whole banana plantation at once so it regrows, instead of swinging the machete at every plant.
 
 Open the construction menu (Shift + P by default), Landscaping > Banana Regrow. Left click one corner of the area and then the opposite corner: the area is drawn on the ground, the plants that need cutting get a green marker, and the cursor shows how many there are. Left click again to cut them all back. Right click takes back the last corner. With nothing marked, a right click on a plantation cuts back the whole plantation.
 
 Ripe plants are harvested first, like with the machete, and their bananas go straight into your farm's nearest washing station (carry the machete; in multiplayer the server does it). Then harvested, half-cut and withered plants go to the cut-down state the machete leaves, so they regrow from the next month. Plants that are still growing are left alone.
 
-The same works on foot with keys: Left Alt + K marks a corner where you stand, Left Alt + L cuts back the marked area (or, with nothing marked, the plantation next to you), Left Alt + J clears the area.
+The same works on foot with the keys above: mark a corner where you stand, cut back the marked area (or, with nothing marked, the plantation next to you), clear the area.
 
 Only plants on land of your own farm are touched. Works in multiplayer (the server does the cutting). Needs the banana plantations of the Beans & Alpacas Pack; without them the mod does nothing.
 
@@ -22,13 +28,19 @@ Console: brHarvest [radius|all] harvests the ripe plants around you into the was
 
 Changelog 1.2.5.3:
 - Updated for the current game version (modDesc version 116).]]></en>
-        <de><![CDATA[Eine ganze Bananenplantage auf einmal zurückschneiden, damit sie nachwächst, statt jede Pflanze einzeln mit der Machete zu bearbeiten.
+        <de><![CDATA[Kategorie: Landschaftsbau > Banana Regrow (Baumenü)
+Preis: 0 €
+Monatliche Unterhaltskosten: keine
+Tastenkombinationen (zu Fuß): Links Alt + K markiert eine Ecke, Links Alt + L schneidet zurück, Links Alt + J löscht die Fläche. Controller: standardmäßig keine, unter Einstellungen > Steuerung belegen.
+Benötigt: Beans & Alpacas Pack (DLC)
+
+Eine ganze Bananenplantage auf einmal zurückschneiden, damit sie nachwächst, statt jede Pflanze einzeln mit der Machete zu bearbeiten.
 
 Das Baumenü öffnen (Standard: Umschalt + P), Landschaftsbau > Banana Regrow. Eine Ecke der Fläche und dann die gegenüberliegende Ecke anklicken: Die Fläche wird am Boden angezeigt, Pflanzen, die zurückgeschnitten werden müssen, bekommen eine grüne Markierung, und der Cursor zeigt ihre Anzahl. Ein weiterer Linksklick schneidet sie alle zurück. Rechtsklick nimmt die letzte Ecke zurück. Ohne Markierung schneidet ein Rechtsklick auf eine Plantage die ganze Plantage zurück.
 
 Reife Pflanzen werden zuerst geerntet, wie mit der Machete, und ihre Bananen kommen direkt in die nächste Waschstation deines Hofs (Machete mitnehmen; im Multiplayer erledigt das der Server). Dann kommen geerntete, halb geschnittene und verdorrte Pflanzen in den Zustand, den die Machete hinterlässt, und wachsen ab dem nächsten Monat nach. Pflanzen im Wachstum bleiben unberührt.
 
-Zu Fuß geht es auch mit Tasten: Links Alt + K markiert eine Ecke am eigenen Standort, Links Alt + L schneidet die markierte Fläche zurück (ohne Markierung die Plantage neben dir), Links Alt + J löscht die Fläche.
+Zu Fuß geht es auch mit den Tasten oben: eine Ecke am eigenen Standort markieren, die markierte Fläche zurückschneiden (ohne Markierung die Plantage neben dir), die Fläche löschen.
 
 Nur Pflanzen auf Land des eigenen Hofs werden bearbeitet. Funktioniert im Multiplayer (der Server schneidet). Benötigt die Bananenplantagen des Beans & Alpacas Packs; ohne sie tut der Mod nichts.
 
@@ -42,6 +54,10 @@ Changelog 1.2.5.3:
 
     <iconFilename>icon_bananaRegrow.dds</iconFilename>
     <multiplayer supported="true"/>
+
+    <dependencies>
+        <dependency>pdlc_beansAndAlpacasPack</dependency>
+    </dependencies>
     <l10n filenamePrefix="translations/translation"/>
 
     <actions>
