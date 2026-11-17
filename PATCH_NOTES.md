@@ -1,5 +1,11 @@
 # Patch notes
 
+## 1.2.5.4
+
+- Description in GIANTS' ModHub layout (category, price, upkeep or hotkeys at the top).
+- Declares the Beans & Alpacas DLC it needs, so the game tells you when it is missing.
+- New mod icon in the ModHub standard.
+
 ## 1.2.5.3
 
 - Updated for the current game version: modDesc descVersion 116 (the game build of 2026-10-27; GIANTS TestRunner 0.9.24 accepts only 116).
