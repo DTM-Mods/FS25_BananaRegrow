@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
-<modDesc descVersion="114" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://validation.gdn.giants-software.com/xml/fs25/modDesc.xsd">
+<modDesc descVersion="115" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://validation.gdn.giants-software.com/xml/fs25/modDesc.xsd">
     <author>DTM Mods, Fennell</author>
-    <version>1.2.5.1</version>
+    <version>1.2.5.2</version>
     <title>
         <en>Banana Regrow</en>
-        <de>Banana Regrow</de>
     </title>
     <description>
         <en><![CDATA[Cut back a whole banana plantation at once so it regrows, instead of swinging the machete at every plant.
@@ -19,7 +18,11 @@ Only plants on land of your own farm are touched. Works in multiplayer (the serv
 
 The menus' bottom bar gets extra button slots when a page has more buttons than fit, so the washing station's "Manage workers" button no longer disappears when another mod (e.g. Production Storage Control's "Spawn goods") adds a button.
 
-Console: brHarvest [radius|all] harvests the ripe plants around you into the washing station, brCollect [radius] puts banana bunches lying on the ground into it (admins), brCutAll toggles cutting ALL plants in the area (also ripe and growing ones) for a full reset, brInfo writes the plantation's technical details to the log, brDebug toggles debug logging. Research (admins): brProbe and brTrace log how the game harvests with the machete, brRipen [radius] makes your plants around you ripe.]]></en>
+Console: brHarvest [radius|all] harvests the ripe plants around you into the washing station, brCollect [radius] puts banana bunches lying on the ground into it (admins), brCutAll toggles cutting ALL plants in the area (also ripe and growing ones) for a full reset, brInfo writes the plantation's technical details to the log, brDebug toggles debug logging. Research (admins): brProbe and brTrace log how the game harvests with the machete, brRipen [radius] makes your plants around you ripe.
+
+Changelog 1.2.5.2:
+- Meets the GIANTS ModHub checks (TestRunner): textures, icon and modDesc brought up to date.
+- Errors are no longer hidden: they show in the log.]]></en>
         <de><![CDATA[Eine ganze Bananenplantage auf einmal zurückschneiden, damit sie nachwächst, statt jede Pflanze einzeln mit der Machete zu bearbeiten.
 
 Das Baumenü öffnen (Standard: Umschalt + P), Landschaftsbau > Banana Regrow. Eine Ecke der Fläche und dann die gegenüberliegende Ecke anklicken: Die Fläche wird am Boden angezeigt, Pflanzen, die zurückgeschnitten werden müssen, bekommen eine grüne Markierung, und der Cursor zeigt ihre Anzahl. Ein weiterer Linksklick schneidet sie alle zurück. Rechtsklick nimmt die letzte Ecke zurück. Ohne Markierung schneidet ein Rechtsklick auf eine Plantage die ganze Plantage zurück.
@@ -32,10 +35,14 @@ Nur Pflanzen auf Land des eigenen Hofs werden bearbeitet. Funktioniert im Multip
 
 Die untere Tastenleiste der Menüs bekommt zusätzliche Plätze, wenn eine Seite mehr Tasten hat als hineinpassen. So verschwindet die Taste "Arbeiter verwalten" der Waschstation nicht mehr, wenn ein anderer Mod (z. B. "Waren spawnen" von Production Storage Control) eine Taste hinzufügt.
 
-Konsole: brHarvest [Radius|all] erntet die reifen Pflanzen um dich herum in die Waschstation, brCollect [Radius] bringt herumliegende Bananenbüschel hinein (Admins), brCutAll schaltet das Schneiden ALLER Pflanzen in der Fläche um (auch reife und wachsende) für einen kompletten Neustart, brInfo schreibt die technischen Daten der Plantage ins Log, brDebug schaltet Debug-Ausgaben um. Forschung (Admins): brProbe und brTrace protokollieren, wie das Spiel mit der Machete erntet, brRipen [Radius] macht die eigenen Pflanzen um dich herum reif.]]></de>
+Konsole: brHarvest [Radius|all] erntet die reifen Pflanzen um dich herum in die Waschstation, brCollect [Radius] bringt herumliegende Bananenbüschel hinein (Admins), brCutAll schaltet das Schneiden ALLER Pflanzen in der Fläche um (auch reife und wachsende) für einen kompletten Neustart, brInfo schreibt die technischen Daten der Plantage ins Log, brDebug schaltet Debug-Ausgaben um. Forschung (Admins): brProbe und brTrace protokollieren, wie das Spiel mit der Machete erntet, brRipen [Radius] macht die eigenen Pflanzen um dich herum reif.
+
+Changelog 1.2.5.2:
+- Erfüllt die GIANTS-ModHub-Prüfungen (TestRunner): Texturen, Icon und modDesc auf den neuesten Stand gebracht.
+- Fehler werden nicht mehr versteckt und erscheinen im Log.]]></de>
     </description>
 
-    <iconFilename>icon_bananaRegrow.png</iconFilename>
+    <iconFilename>icon_bananaRegrow.dds</iconFilename>
     <multiplayer supported="true"/>
     <l10n filenamePrefix="translations/translation"/>
 
@@ -58,7 +65,7 @@ Konsole: brHarvest [Radius|all] erntet die reifen Pflanzen um dich herum in die 
 
     <!-- Shift-P construction menu: own tab under Landscaping with the Banana Regrow tool -->
     <constructionCategories>
-        <tab categoryName="landscaping" name="bananaRegrow" title="$l10n_construction_tab_bananaRegrow" iconFilename="icon_bananaRegrow.png" refSize="1 1" iconUVs="0 0 1 1"/>
+        <tab categoryName="landscaping" name="bananaRegrow" title="$l10n_construction_tab_bananaRegrow" iconFilename="store_bananaRegrow.dds" refSize="1 1" iconUVs="0 0 1 1"/>
     </constructionCategories>
 
     <storeItems>

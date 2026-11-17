@@ -56,14 +56,48 @@ BananaRegrow.recountTimer = nil
 BananaRegrow.eventIds = {}
 BananaRegrow.placeableFruit = setmetatable({}, {__mode = "k"})
 
+local INT_CONVERSIONS = {d = true, i = true, c = true, o = true, u = true, x = true, X = true}
+local FLOAT_CONVERSIONS = {e = true, E = true, f = true, g = true, G = true}
+
+--- string.format for log lines and texts that does not fail on a bad argument: every %-spec gets a value of the type
+--- it needs (%s takes tostring of anything; a number spec whose argument is no number writes tostring of it instead),
+--- a spec without an argument stays as it is
+function BananaRegrow.format(fmt, ...)
+    if type(fmt) ~= "string" then
+        return tostring(fmt)
+    end
+    local args, numArgs, index = {...}, select("#", ...), 0
+    local result = string.gsub(fmt, "%%([%-%+ #0]*%d*%.?%d*)([%a%%])", function(spec, conversion)
+        if conversion == "%" then
+            return "%"
+        end
+        index = index + 1
+        if index > numArgs then
+            return "%" .. spec .. conversion
+        end
+        local value = args[index]
+        if conversion == "s" or conversion == "q" then
+            return string.format("%" .. spec .. conversion, tostring(value))
+        end
+        local number = tonumber(value)
+        if FLOAT_CONVERSIONS[conversion] and number ~= nil then
+            return string.format("%" .. spec .. conversion, number)
+        end
+        if INT_CONVERSIONS[conversion] and number ~= nil and number == number and math.abs(number) < 2 ^ 53 then
+            -- truncated like Lua 5.1 does it, and an integral value for stricter Lua versions
+            return string.format("%" .. spec .. conversion, number >= 0 and math.floor(number) or math.ceil(number))
+        end
+        return tostring(value)
+    end)
+    return result
+end
+
 local function log(fmt, ...)
-    local ok, s = pcall(string.format, fmt, ...)
-    Logging.info("[BananaRegrow] " .. (ok and s or tostring(fmt)))
+    Logging.info("[BananaRegrow] " .. BananaRegrow.format(fmt, ...))
 end
 
 local function warn(fmt, ...)
-    local ok, s = pcall(string.format, fmt, ...)
-    Logging.warning("[BananaRegrow] " .. (ok and s or tostring(fmt)))
+    Logging.warning("[BananaRegrow] " .. BananaRegrow.format(fmt, ...))
 end
 
 local function dbg(fmt, ...)
@@ -75,10 +109,7 @@ end
 local function text(key, ...)
     local s = g_i18n:getText(key)
     if select("#", ...) > 0 then
-        local ok, formatted = pcall(string.format, s, ...)
-        if ok then
-            return formatted
-        end
+        return BananaRegrow.format(s, ...)
     end
     return s
 end
@@ -113,9 +144,9 @@ end
 --- Growth state index of a foliage state name, from the fruit description (FruitTypeDesc keeps
 --- growthStateToName / nameToGrowthState and offers getGrowthStateByName). nil when the game does not know it.
 function BananaRegrow.getStateIndex(desc, name)
-    if desc.getGrowthStateByName ~= nil then
-        local ok, index = pcall(desc.getGrowthStateByName, desc, name)
-        if ok and type(index) == "number" then
+    if type(desc.getGrowthStateByName) == "function" and type(name) == "string" then
+        local index = desc:getGrowthStateByName(name)
+        if type(index) == "number" then
             return index
         end
     end
@@ -247,16 +278,23 @@ function BananaRegrow.getModifier()
             BananaRegrow.modifier = false
             return nil
         end
-        local ok, modifier = pcall(DensityMapModifier.new, states.mapId, states.firstChannel, states.numChannels, terrain)
-        if not ok or modifier == nil then
+        if type(states.mapId) ~= "number" or states.mapId == 0 or type(states.firstChannel) ~= "number"
+            or type(states.numChannels) ~= "number" or states.numChannels <= 0 then
             BananaRegrow.modifier = false
-            warn("DensityMapModifier for the banana layer failed: %s", tostring(modifier))
+            warn("no usable banana density map (map %s, channels %s+%s)", tostring(states.mapId), tostring(states.firstChannel),
+                tostring(states.numChannels))
             return nil
         end
-        local okF, filter = pcall(DensityMapFilter.new, modifier)
-        if not okF or filter == nil then
+        local modifier = DensityMapModifier.new(states.mapId, states.firstChannel, states.numChannels, terrain)
+        if modifier == nil then
             BananaRegrow.modifier = false
-            warn("DensityMapFilter failed: %s", tostring(filter))
+            warn("DensityMapModifier for the banana layer could not be created")
+            return nil
+        end
+        local filter = DensityMapFilter.new(modifier)
+        if filter == nil then
+            BananaRegrow.modifier = false
+            warn("DensityMapFilter could not be created")
             return nil
         end
         BananaRegrow.modifier, BananaRegrow.filter = modifier, filter
@@ -322,9 +360,9 @@ end
 
 --- The fence of the placeable (PlaceableFence / PlaceableNewFence): placeable:getFence() or the spec table
 function BananaRegrow.getFence(placeable)
-    if placeable.getFence ~= nil then
-        local ok, fence = pcall(placeable.getFence, placeable)
-        if ok and type(fence) == "table" then
+    if type(placeable.getFence) == "function" then
+        local fence = placeable:getFence()
+        if type(fence) == "table" then
             return fence
         end
     end
@@ -383,9 +421,9 @@ function BananaRegrow.isFruitPlaceable(placeable, fruitIndex)
     local known = BananaRegrow.placeableFruit[placeable]
     if known == nil then
         known = false
-        if placeable.getVineFruitTypeIndex ~= nil then
-            local ok, index = pcall(placeable.getVineFruitTypeIndex, placeable)
-            if ok and type(index) == "number" then
+        if type(placeable.getVineFruitTypeIndex) == "function" then
+            local index = placeable:getVineFruitTypeIndex()
+            if type(index) == "number" then
                 known = index
             end
         end
@@ -440,9 +478,9 @@ function BananaRegrow.getNodeSections(placeable, node)
             return {data.area}, "sections"
         end
     end
-    if placeable.getVineAreaByNode ~= nil then
-        local ok, sx, sz, wx, wz, hx, hz = pcall(placeable.getVineAreaByNode, placeable, node)
-        if ok and type(sx) == "number" and type(hz) == "number" then
+    if type(placeable.getVineAreaByNode) == "function" and entityExists(node) then
+        local sx, sz, wx, wz, hx, hz = placeable:getVineAreaByNode(node)
+        if type(sx) == "number" and type(hz) == "number" then
             return {{sx, sz, wx, wz, hx, hz}}, "api"
         end
     end
@@ -495,17 +533,14 @@ end
 
 function BananaRegrow.canFarmAccess(farmId, placeable)
     local accessHandler = g_currentMission ~= nil and g_currentMission.accessHandler or nil
-    if accessHandler ~= nil and accessHandler.canFarmAccess ~= nil then
-        local ok, allowed = pcall(accessHandler.canFarmAccess, accessHandler, farmId, placeable)
-        if ok and type(allowed) == "boolean" then
+    if accessHandler ~= nil and type(accessHandler.canFarmAccess) == "function" and farmId ~= nil and type(placeable) == "table" then
+        local allowed = accessHandler:canFarmAccess(farmId, placeable)
+        if type(allowed) == "boolean" then
             return allowed
         end
     end
-    if placeable.getOwnerFarmId ~= nil then
-        local ok, owner = pcall(placeable.getOwnerFarmId, placeable)
-        if ok then
-            return owner == farmId
-        end
+    if type(placeable) == "table" and type(placeable.getOwnerFarmId) == "function" then
+        return placeable:getOwnerFarmId() == farmId
     end
     return false
 end
@@ -513,10 +548,11 @@ end
 --- Tells the placeable that the density under a node changed, so its plant model follows
 function BananaRegrow.refreshNode(placeable, node)
     for _, name in ipairs({"updateVineNode", "updateOrchardNode", "updateNode"}) do
-        if placeable[name] ~= nil then
-            local ok, err = pcall(placeable[name], placeable, node, false)
-            if not ok then
-                warn("%s failed: %s", name, tostring(err))
+        if type(placeable[name]) == "function" then
+            if entityExists(node) then
+                placeable[name](placeable, node, false)
+            else
+                warn("%s skipped: plant node %s no longer exists", name, tostring(node))
             end
             return
         end
@@ -648,11 +684,8 @@ function BananaRegrow.getActorPosition()
         return nil
     end
     local vehicle = nil
-    if player.getCurrentVehicle ~= nil then
-        local ok, v = pcall(player.getCurrentVehicle, player)
-        if ok then
-            vehicle = v
-        end
+    if type(player.getCurrentVehicle) == "function" then
+        vehicle = player:getCurrentVehicle()
     end
     if vehicle == nil and g_currentMission ~= nil then
         vehicle = g_currentMission.controlledVehicle
@@ -887,9 +920,9 @@ function BananaRegrow.serverCut(request, connection)
     -- the farm is the requesting player's farm, not whatever the client claims
     local farmId = request.farmId
     local player = connection == nil and g_localPlayer or nil
-    if connection ~= nil and g_currentMission.playerSystem ~= nil and g_currentMission.playerSystem.getPlayerByConnection ~= nil then
-        local ok, p = pcall(g_currentMission.playerSystem.getPlayerByConnection, g_currentMission.playerSystem, connection)
-        if ok and type(p) == "table" then
+    if connection ~= nil and g_currentMission.playerSystem ~= nil and type(g_currentMission.playerSystem.getPlayerByConnection) == "function" then
+        local p = g_currentMission.playerSystem:getPlayerByConnection(connection)
+        if type(p) == "table" then
             player = p
             if p.farmId ~= nil then
                 farmId = p.farmId
@@ -970,11 +1003,8 @@ function BananaRegrow.finishCut(ctx)
         local first = plants[1]
         warn("found %d plants but none had banana pixels in the cut states; plantation details follow (first plant area from '%s')",
             result.numChecked, tostring(first.source))
-        pcall(BananaRegrow.describePlaceable, first.placeable, first.node)
-        local ok, err = pcall(BananaRegrow.deepProbe, first.placeable, first.node)
-        if not ok then
-            warn("deep probe failed: %s", tostring(err))
-        end
+        BananaRegrow.describePlaceable(first.placeable, first.node)
+        BananaRegrow.deepProbe(first.placeable, first.node)
     end
 
     log("cut back %d of %d banana plants for farm %s (%d on other farms' land, mode %s, cutAll %s)", result.numCut, result.numChecked,
@@ -1032,8 +1062,8 @@ function BananaRegrow.onRegisterPlayerActionEvents(inputComponent, contextName)
     for _, action in ipairs(BananaRegrow.ACTIONS) do
         local inputAction = InputAction[action.name]
         if inputAction ~= nil then
-            local ok, _, eventId = pcall(g_inputBinding.registerActionEvent, g_inputBinding, inputAction, inputComponent, action.callback, false, true, false, true)
-            if ok and eventId ~= nil then
+            local _, eventId = g_inputBinding:registerActionEvent(inputAction, inputComponent, action.callback, false, true, false, true)
+            if eventId ~= nil then
                 g_inputBinding:setActionEventTextPriority(eventId, GS_PRIO_LOW)
                 g_inputBinding:setActionEventText(eventId, text("input_" .. action.name))
                 g_inputBinding:setActionEventTextVisibility(eventId, action.name ~= "BANANAREGROW_CLEAR" or #BananaRegrow.corners > 0)
@@ -1049,7 +1079,7 @@ function BananaRegrow.updateClearVisibility()
     local eventId = BananaRegrow.eventIds["BANANAREGROW_CLEAR"]
     local visible = #BananaRegrow.corners > 0
     if eventId ~= nil and visible ~= BananaRegrow.clearVisible and g_inputBinding ~= nil then
-        pcall(g_inputBinding.setActionEventTextVisibility, g_inputBinding, eventId, visible)
+        g_inputBinding:setActionEventTextVisibility(eventId, visible)
         BananaRegrow.clearVisible = visible
     end
 end
@@ -1097,16 +1127,20 @@ function BananaRegrow:loadMap(name)
     BananaRegrow.clearVisible = nil
     BananaRegrow.placeableFruit = setmetatable({}, {__mode = "k"})
     installInputHook()
-    pcall(addConsoleCommand, "brDebug", "Banana Regrow: toggle debug logging", "consoleDebug", BananaRegrow)
-    pcall(addConsoleCommand, "brCutAll", "Banana Regrow: toggle cutting ALL plants in the area (also ripe and growing ones)", "consoleCutAll", BananaRegrow)
-    pcall(addConsoleCommand, "brInfo", "Banana Regrow: write the nearest banana plantation's technical details to the log", "consoleInfo", BananaRegrow)
+    if addConsoleCommand ~= nil then
+        addConsoleCommand("brDebug", "Banana Regrow: toggle debug logging", "consoleDebug", BananaRegrow)
+        addConsoleCommand("brCutAll", "Banana Regrow: toggle cutting ALL plants in the area (also ripe and growing ones)", "consoleCutAll", BananaRegrow)
+        addConsoleCommand("brInfo", "Banana Regrow: write the nearest banana plantation's technical details to the log", "consoleInfo", BananaRegrow)
+    end
     log("loaded (%s)", g_dedicatedServer ~= nil and "dedicated server" or (g_server ~= nil and "server" or "client"))
 end
 
 function BananaRegrow:deleteMap()
-    pcall(removeConsoleCommand, "brDebug")
-    pcall(removeConsoleCommand, "brCutAll")
-    pcall(removeConsoleCommand, "brInfo")
+    if removeConsoleCommand ~= nil then
+        removeConsoleCommand("brDebug")
+        removeConsoleCommand("brCutAll")
+        removeConsoleCommand("brInfo")
+    end
     BananaRegrow.modifier = nil
     BananaRegrow.filter = nil
     BananaRegrow.states = nil
@@ -1306,10 +1340,7 @@ function BananaRegrow:consoleInfo()
     end
     log("nearest plantation %.0f m away:", math.sqrt(bestDist))
     BananaRegrow.describePlaceable(best, bestNode)
-    local ok, err = pcall(BananaRegrow.deepProbe, best, bestNode)
-    if not ok then
-        warn("deep probe failed: %s", tostring(err))
-    end
+    BananaRegrow.deepProbe(best, bestNode)
     return "[BananaRegrow] details written to log.txt"
 end
 
@@ -1378,6 +1409,10 @@ end
 
 --- Everything needed to find the plant data of the DLC plantation (console brInfo, next to a plant)
 function BananaRegrow.deepProbe(placeable, node)
+    if type(placeable) ~= "table" or node == nil or not entityExists(node) then
+        warn("deep probe skipped: plant node %s does not exist", tostring(node))
+        return
+    end
     local nx, ny, nz = getWorldTranslation(node)
     local dx, _, dz = localDirectionToWorld(node, 0, 0, 1)
     log("deep probe: node %s at %.2f %.2f %.2f, direction %.2f %.2f, parent %s", tostring(node), nx, ny, nz, dx, dz,
@@ -1393,7 +1428,11 @@ function BananaRegrow.deepProbe(placeable, node)
 
     -- where is this node's data?
     local fence = BananaRegrow.getFence(placeable)
-    local roots = {{placeable, "placeable"}, {g_currentMission.vineSystem, "vineSystem"}}
+    local vineSystem = g_currentMission.vineSystem
+    local roots = {{placeable, "placeable"}}
+    if type(vineSystem) == "table" then
+        roots[#roots + 1] = {vineSystem, "vineSystem"}
+    end
     if fence ~= nil then
         roots[#roots + 1] = {fence, "fence"}
     end
@@ -1410,7 +1449,8 @@ function BananaRegrow.deepProbe(placeable, node)
                         for state, value in pairs(gv.values) do
                             if value ~= 0 then
                                 local fruit = BananaRegrow.getFruit()
-                                parts[#parts + 1] = string.format("%s:%s", tostring(fruit.growthStateToName[state] or state), tostring(value))
+                                local names = fruit ~= nil and type(fruit.growthStateToName) == "table" and fruit.growthStateToName or {}
+                                parts[#parts + 1] = string.format("%s:%s", tostring(names[state] or state), tostring(value))
                             end
                         end
                         log("      growthValues[%d] totalArea=%s %s", i, tostring(gv.totalArea), table.concat(parts, " "))
@@ -1444,16 +1484,16 @@ function BananaRegrow.deepProbe(placeable, node)
         local numRipe, numWithered, numSegments = 0, 0, 0
         for _, segment in ipairs(fence.segments) do
             numSegments = numSegments + 1
-            if placeable.getHasSegmentTargetGrowthState ~= nil then
-                local okR, ripe = pcall(placeable.getHasSegmentTargetGrowthState, placeable, segment, fruit.index, true, false)
-                local okW, withered = pcall(placeable.getHasSegmentTargetGrowthState, placeable, segment, fruit.index, false, true)
-                if okR and ripe then numRipe = numRipe + 1 end
-                if okW and withered then numWithered = numWithered + 1 end
+            if type(placeable.getHasSegmentTargetGrowthState) == "function" and fruit ~= nil and type(segment) == "table" then
+                if placeable:getHasSegmentTargetGrowthState(segment, fruit.index, true, false) then numRipe = numRipe + 1 end
+                if placeable:getHasSegmentTargetGrowthState(segment, fruit.index, false, true) then numWithered = numWithered + 1 end
             end
         end
         log("  plantation's own view: %d rows, %d with ripe plants, %d with withered plants", numSegments, numRipe, numWithered)
     end
-    log("  vine system fields: %s", keysOf(g_currentMission.vineSystem, 40))
+    if type(vineSystem) == "table" then
+        log("  vine system fields: %s", keysOf(vineSystem, 40))
+    end
 end
 
 -- construction screen tool (Shift-P > Landscaping > Banana Regrow); the store item bananaRegrowTool.xml names the

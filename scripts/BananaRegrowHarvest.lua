@@ -35,14 +35,13 @@ H.MAX_RADIUS = 100
 H.queue = nil
 
 local function log(fmt, ...)
-    local ok, s = pcall(string.format, fmt, ...)
-    local line = "[BananaRegrow:harvest] " .. (ok and s or tostring(fmt))
+    local line = "[BananaRegrow:harvest] " .. BananaRegrow.format(fmt, ...)
     print(line)
     -- on a server, the requesting player gets the lines in their own log.txt too
     local q = H.queue
     local connection = (q ~= nil and q.connection) or H.logConnection
     if connection ~= nil and BananaRegrowProbe ~= nil and BananaRegrowProbe.relay ~= nil then
-        pcall(BananaRegrowProbe.relay, line, connection)
+        BananaRegrowProbe.relay(line, connection)
     end
 end
 
@@ -90,20 +89,14 @@ end
 
 local function carrierOf(tool)
     if type(tool.getCarryingPlayer) == "function" then
-        local ok, p = pcall(tool.getCarryingPlayer, tool)
-        if ok then
-            return p
-        end
+        return tool:getCarryingPlayer()
     end
     return tool.carryingPlayer
 end
 
 local function isHeld(tool)
     if type(tool.getIsHeld) == "function" then
-        local ok, h = pcall(tool.getIsHeld, tool)
-        if ok then
-            return h == true
-        end
+        return tool:getIsHeld() == true
     end
     return tool.isHeld == true
 end
@@ -136,8 +129,11 @@ function H.findHeldBunch(player)
     for _, tool in ipairs(playerTools(player)) do
         local spec = tool.spec_hands
         if type(spec) == "table" and spec.heldItemNode ~= nil then
-            local ok, bunch = pcall(g_currentMission.getNodeObject, g_currentMission, spec.heldItemNode)
-            return tool, ok and bunch or nil
+            local bunch = nil
+            if type(g_currentMission.getNodeObject) == "function" then
+                bunch = g_currentMission:getNodeObject(spec.heldItemNode)
+            end
+            return tool, bunch
         end
     end
     return nil
@@ -166,13 +162,10 @@ function H.isBunch(object)
     if type(object) ~= "table" then
         return false
     end
-    local okN, name = pcall(function()
-        return tostring(object.className or "") .. " " .. tostring(object.typeName or "")
-    end)
-    name = okN and name or ""
-    if ClassUtil ~= nil and ClassUtil.getClassNameByObject ~= nil then
-        local okC, cn = pcall(ClassUtil.getClassNameByObject, object)
-        if okC and cn ~= nil then
+    local name = tostring(object.className or "") .. " " .. tostring(object.typeName or "")
+    if ClassUtil ~= nil and type(ClassUtil.getClassNameByObject) == "function" then
+        local cn = ClassUtil.getClassNameByObject(object)
+        if cn ~= nil then
             name = name .. " " .. tostring(cn)
         end
     end
@@ -182,15 +175,26 @@ function H.isBunch(object)
     return type(rawget(object, "fillLevel")) == "number" and rawget(object, "fillType") ~= nil and rawget(object, "hook") ~= nil
 end
 
---- Calls fn(...) and returns ok, err, bunch: the first banana bunch registered with g_currentMission:addNodeObject
---- during the call (that is how the bunch the machete creates becomes known, also on a dedicated server where it
---- does not end up in the player's hands)
+--- Puts g_currentMission.addNodeObject back the way it was before callCapturingBunch (also after an error inside fn,
+--- which leaves the capture in place until the next call or the end of the harvest)
+function H.restoreAddNodeObject()
+    local capture = H.capture
+    if capture ~= nil then
+        H.capture = nil
+        rawset(capture.mission, "addNodeObject", capture.own)    -- nil again when the function came from the class
+    end
+end
+
+--- Calls fn(...) and returns the first banana bunch registered with g_currentMission:addNodeObject during the call
+--- (that is how the bunch the machete creates becomes known, also on a dedicated server where it does not end up in
+--- the player's hands), or nil
 function H.callCapturingBunch(fn, ...)
+    H.restoreAddNodeObject()
     local mission = g_currentMission
-    local own = rawget(mission, "addNodeObject")
     local original = mission.addNodeObject
     local created
     if type(original) == "function" then
+        H.capture = {mission = mission, own = rawget(mission, "addNodeObject")}
         mission.addNodeObject = function(self, node, object, ...)
             if created == nil and H.isBunch(object) then
                 created = object
@@ -198,9 +202,9 @@ function H.callCapturingBunch(fn, ...)
             return original(self, node, object, ...)
         end
     end
-    local ok, err = pcall(fn, ...)
-    rawset(mission, "addNodeObject", own)    -- nil again when the function came from the class
-    return ok, err, created
+    fn(...)
+    H.restoreAddNodeObject()
+    return created
 end
 
 --- washing stations: {placeable=, storage=, fillTypeIndex=}
@@ -222,9 +226,9 @@ end
 
 local function freeRoom(station, fillType)
     local storage = station.storage
-    if type(storage.getFreeCapacity) == "function" then
-        local ok, free = pcall(storage.getFreeCapacity, storage, fillType)
-        if ok and type(free) == "number" then
+    if type(storage.getFreeCapacity) == "function" and fillType ~= nil then
+        local free = storage:getFreeCapacity(fillType)
+        if type(free) == "number" then
             return free
         end
     end
@@ -249,9 +253,9 @@ function H.findStation(x, z, farmId, liters, fillType)
 end
 
 local function stationName(station)
-    if station.placeable.getName ~= nil then
-        local ok, name = pcall(station.placeable.getName, station.placeable)
-        if ok and name ~= nil then
+    if type(station.placeable.getName) == "function" then
+        local name = station.placeable:getName()
+        if name ~= nil then
             return tostring(name)
         end
     end
@@ -259,10 +263,10 @@ local function stationName(station)
 end
 
 local function equip(player, tool)
-    if type(player.setCurrentHandTool) ~= "function" then
+    if type(player) ~= "table" or type(player.setCurrentHandTool) ~= "function" or type(tool) ~= "table" then
         return false
     end
-    pcall(player.setCurrentHandTool, player, tool, false)
+    player:setCurrentHandTool(tool, false)
     return isHeld(tool)
 end
 
@@ -346,6 +350,7 @@ end
 function H.finish(reason)
     local q = H.queue
     H.queue = nil
+    H.restoreAddNodeObject()
     if q == nil then
         return
     end
@@ -390,10 +395,10 @@ function H.harvestOne(q, plant)
     end
     local before = select(2, H.findHeldBunch(q.player))
     local listedBefore = H.activeBunchSet()
-    local ok, err, created = H.callCapturingBunch(knife.executeHarvest, knife, plant.x, plant.y + H.BUNCH_HEIGHT, plant.z, false)
-    if not ok then
-        return nil, "executeHarvest failed: " .. tostring(err)
+    if type(knife.executeHarvest) ~= "function" or knife.isDeleted then
+        return nil, "the machete is gone"
     end
+    local created = H.callCapturingBunch(knife.executeHarvest, knife, plant.x, plant.y + H.BUNCH_HEIGHT, plant.z, false)
     local hands, bunch = H.findHeldBunch(q.player)
     local foundIn = "hands"
     if bunch == nil or bunch == before then
@@ -414,16 +419,16 @@ function H.harvestOne(q, plant)
     end
     if bunch == nil then
         q.misses = q.misses + 1
-        local okH, states = pcall(BananaRegrow.stateHistogram, plant.sections[1])
-        log("plant at %.1f %.1f gave no bunch (%s), skipped", plant.x, plant.z, okH and tostring(states) or "?")
+        local states = BananaRegrow.stateHistogram(plant.sections[1])
+        log("plant at %.1f %.1f gave no bunch (%s), skipped", plant.x, plant.z, tostring(states))
         if q.misses >= H.MAX_MISSES then
             return nil, "the machete stopped harvesting"
         end
         return true
     end
     q.misses = 0
-    if hands ~= nil then
-        pcall(hands.dropHeldItem, hands, false)
+    if hands ~= nil and type(hands.dropHeldItem) == "function" then
+        hands:dropHeldItem(false)
     end
     local liters, station, reason = H.deliverBunch(bunch, plant.x, plant.z, q.farmId)
     if liters == nil then
@@ -450,13 +455,10 @@ function H.deliverBunch(bunch, x, z, farmId)
         return nil, nil, "no washing station of your farm has room (the last bunch lies on the ground)"
     end
     fillType = fillType or station.fillTypeIndex
-    local deleted = false
-    if type(bunch.delete) == "function" then
-        deleted = pcall(bunch.delete, bunch)
-    end
-    if not deleted then
+    if type(bunch.delete) ~= "function" or bunch.isDeleted then
         return nil, nil, "could not remove the bunch object (it lies on the ground)"
     end
+    bunch:delete()
     local storage = station.storage
     local current = storage.getFillLevel ~= nil and storage:getFillLevel(fillType) or 0
     storage:setFillLevel(current + liters, fillType)
@@ -471,9 +473,11 @@ function H.collectLoose(x, z, radius, farmId)
     for node, object in pairs(g_currentMission.nodeToObject or {}) do
         if not seen[object] and H.isBunch(object) then
             seen[object] = true
-            local okP, bx, _, bz = pcall(getWorldTranslation, node)
-            if okP and bx ~= nil and (bx - x) * (bx - x) + (bz - z) * (bz - z) <= r2 then
-                found[#found + 1] = {bunch = object, x = bx, z = bz}
+            if type(node) == "number" and entityExists(node) then
+                local bx, _, bz = getWorldTranslation(node)
+                if (bx - x) * (bx - x) + (bz - z) * (bz - z) <= r2 then
+                    found[#found + 1] = {bunch = object, x = bx, z = bz}
+                end
             end
         end
     end
@@ -527,12 +531,17 @@ function H.step()
 end
 
 function H:update(dt)
-    if H.queue ~= nil then
-        local ok, err = pcall(H.step)
-        if not ok then
-            log("error: %s", tostring(err))
+    local q = H.queue
+    if q ~= nil then
+        if q.stepping then
+            -- the last step stopped with an error (it is in the log above): end the harvest instead of repeating it
+            log("the last harvest step failed, see the error above")
             H.finish("error, see log.txt")
+            return
         end
+        q.stepping = true
+        H.step()
+        q.stepping = false
     end
 end
 
@@ -545,21 +554,22 @@ function H:consoleHarvest(arg)
     if string.lower(tostring(arg)) ~= "all" then
         radius = math.max(1, math.min(tonumber(arg) or H.DEFAULT_RADIUS, H.MAX_RADIUS))
     end
-    local ok, result = pcall(H.start, radius)
-    if not ok then
-        log("start failed: %s", tostring(result))
-        return "[BananaRegrow] harvest failed, see log.txt"
-    end
-    return "[BananaRegrow] " .. tostring(result)
+    return "[BananaRegrow] " .. tostring(H.start(radius))
 end
 
 function H:loadMap()
-    pcall(addConsoleCommand, "brHarvest", "Banana Regrow: harvest all ripe plants within [radius=10] m (or 'all' = the plantation next to you) into the washing station; carry the machete", "consoleHarvest", H)
+    if addConsoleCommand ~= nil then
+        addConsoleCommand("brHarvest", "Banana Regrow: harvest all ripe plants within [radius=10] m (or 'all' = the plantation next to you)"
+            .. " into the washing station; carry the machete", "consoleHarvest", H)
+    end
 end
 
 function H:deleteMap()
     H.queue = nil
-    pcall(removeConsoleCommand, "brHarvest")
+    H.restoreAddNodeObject()
+    if removeConsoleCommand ~= nil then
+        removeConsoleCommand("brHarvest")
+    end
 end
 
 addModEventListener(H)

@@ -8,7 +8,7 @@
         <functions>
             <function>$l10n_function_bananaRegrowTool</function>
         </functions>
-        <image>icon_bananaRegrow.png</image>
+        <image>store_bananaRegrow.dds</image>
         <price>0</price>
         <dailyUpkeep>0</dailyUpkeep>
         <lifetime>1000</lifetime>
@@ -18,11 +18,6 @@
         <category>placeableMisc</category>
         <canBeSold>false</canBeSold>
         <showInStore>true</showInStore>
-        <vertexBufferMemoryUsage>0</vertexBufferMemoryUsage>
-        <indexBufferMemoryUsage>0</indexBufferMemoryUsage>
-        <textureMemoryUsage>0</textureMemoryUsage>
-        <instanceVertexBufferMemoryUsage>0</instanceVertexBufferMemoryUsage>
-        <instanceIndexBufferMemoryUsage>0</instanceIndexBufferMemoryUsage>
         <brush>
             <type>FS25_BananaRegrow.bananaRegrow</type>
             <category>landscaping</category>
@@ -32,5 +27,20 @@
 
     <base>
         <filename>$data/shared/assets/constructionCursorSimple.i3d</filename>
+        <canBeRenamed>false</canBeRenamed>
+        <boughtWithFarmland>false</boughtWithFarmland>
     </base>
+
+    <!-- never placed (see above); the empty sections only satisfy the GIANTS placeable checks -->
+    <placement useRandomYRotation="false" useManualYRotation="false">
+        <testAreas/>
+        <sounds>
+            <place template="smallImp"/>
+        </sounds>
+    </placement>
+    <clearAreas/>
+    <leveling requireLeveling="false">
+        <levelAreas/>
+    </leveling>
+    <indoorAreas/>
 </placeable>

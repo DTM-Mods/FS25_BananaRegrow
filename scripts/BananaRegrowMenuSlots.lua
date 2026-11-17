@@ -39,9 +39,9 @@ function S.ensureSlots(menu, numButtons)
     local before = #slots
     local target = math.min(numButtons, S.MAX_SLOTS)
     while #slots < target do
-        local ok, clone = pcall(template.clone, template, parent)
-        if not ok or clone == nil then
-            logOnce("cloneFailed", "cloning a button slot failed: %s", tostring(clone))
+        local clone = template:clone(parent)
+        if clone == nil then
+            logOnce("cloneFailed", "cloning a button slot gave no element")
             break
         end
         table.insert(slots, clone)
@@ -64,10 +64,7 @@ function S.beforeAssign(menu, menuButtonInfo)
     if type(menu) ~= "table" or type(menuButtonInfo) ~= "table" then
         return
     end
-    local ok, err = pcall(S.ensureSlots, menu, #menuButtonInfo)
-    if not ok then
-        logOnce("error", "%s", tostring(err))
-    end
+    S.ensureSlots(menu, #menuButtonInfo)
 end
 
 if TabbedMenu ~= nil and TabbedMenu.assignMenuButtonInfo ~= nil then

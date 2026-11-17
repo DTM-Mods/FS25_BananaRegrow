@@ -68,8 +68,10 @@ function P.flushRelay()
             parts[#parts + 1] = entry.text
             size = size + #entry.text + 1
         end
-        pcall(connection.sendEvent, connection,
-            BananaRegrowResearchEvent.new(BananaRegrowResearchEvent.ACTION_LOG, {text = table.concat(parts, "\n")}))
+        -- a player who left in the meantime gets nothing (connection closed)
+        if type(connection.sendEvent) == "function" and connection.isConnected ~= false and BananaRegrowResearchEvent ~= nil then
+            connection:sendEvent(BananaRegrowResearchEvent.new(BananaRegrowResearchEvent.ACTION_LOG, {text = table.concat(parts, "\n")}))
+        end
         sent = sent + 1
     end
 end
@@ -84,13 +86,21 @@ function P.onServerLog(text)
 end
 
 P.lines = 0
+--- a log line from fmt and its arguments (BananaRegrow.format copes with nil and wrong types; the probe also runs
+--- without it in the offline tests)
+local function formatLine(fmt, ...)
+    if BananaRegrow ~= nil and BananaRegrow.format ~= nil then
+        return BananaRegrow.format(fmt, ...)
+    end
+    return string.format(fmt, ...)
+end
+
 local function out(prefix, fmt, ...)
     if P.lines >= P.MAX_LINES then
         return
     end
     P.lines = P.lines + 1
-    local ok, s = pcall(string.format, fmt, ...)
-    local line = prefix .. (ok and s or tostring(fmt))
+    local line = prefix .. formatLine(fmt, ...)
     print(line)
     P.relay(line)
 end
@@ -111,8 +121,8 @@ end
 --- The real global table (a mod's _G is its own environment)
 function P.getGlobals()
     if getfenv ~= nil then
-        local ok, g = pcall(getfenv, 0)
-        if ok and type(g) == "table" then
+        local g = getfenv(0)
+        if type(g) == "table" then
             return g
         end
     end
@@ -120,9 +130,9 @@ function P.getGlobals()
 end
 
 local function className(obj)
-    if ClassUtil ~= nil and ClassUtil.getClassNameByObject ~= nil then
-        local ok, name = pcall(ClassUtil.getClassNameByObject, obj)
-        if ok and type(name) == "string" then
+    if ClassUtil ~= nil and type(ClassUtil.getClassNameByObject) == "function" and type(obj) == "table" then
+        local name = ClassUtil.getClassNameByObject(obj)
+        if type(name) == "string" then
             return name
         end
     end
@@ -192,23 +202,18 @@ local function short(v, depth)
 end
 
 local function fieldsOf(obj, limit)
-    local parts, keys = {}, {}
+    local parts, entries = {}, {}
     for k, v in pairs(obj) do
         if type(v) ~= "function" then
-            keys[#keys + 1] = tostring(k)
+            entries[#entries + 1] = {name = tostring(k), value = v}
         end
     end
-    table.sort(keys)
-    for i = 1, math.min(#keys, limit or 80) do
-        local k = keys[i]
-        local v = obj[k]
-        if v == nil then
-            v = obj[tonumber(k)]
-        end
-        parts[#parts + 1] = k .. "=" .. short(v, 1)
+    table.sort(entries, function(a, b) return a.name < b.name end)
+    for i = 1, math.min(#entries, limit or 80) do
+        parts[#parts + 1] = entries[i].name .. "=" .. short(entries[i].value, 1)
     end
-    if #keys > (limit or 80) then
-        parts[#parts + 1] = string.format("(+%d more)", #keys - (limit or 80))
+    if #entries > (limit or 80) then
+        parts[#parts + 1] = string.format("(+%d more)", #entries - (limit or 80))
     end
     return table.concat(parts, " ")
 end
@@ -363,8 +368,8 @@ function P.runProbe()
             local tool
             for _, getter in ipairs({"getHeldHandTool", "getCurrentHandTool", "getEquippedHandTool"}) do
                 if tool == nil and type(player[getter]) == "function" then
-                    local ok, t = pcall(player[getter], player)
-                    if ok and type(t) == "table" then
+                    local t = player[getter](player)
+                    if type(t) == "table" then
                         tool = t
                     end
                 end
@@ -412,8 +417,7 @@ local function tlog(fmt, ...)
         return
     end
     P.traceLines = P.traceLines + 1
-    local ok, s = pcall(string.format, fmt, ...)
-    local line = "[BananaRegrow:trace] " .. (ok and s or tostring(fmt))
+    local line = "[BananaRegrow:trace] " .. formatLine(fmt, ...)
     print(line)
     P.relay(line, P.traceConnection)
 end
@@ -629,32 +633,31 @@ function P.getRequester(connection)
     end
     local mission = g_currentMission
     local player
-    if mission.playerSystem ~= nil and mission.playerSystem.getPlayerByConnection ~= nil then
-        local ok, p = pcall(mission.playerSystem.getPlayerByConnection, mission.playerSystem, connection)
-        if ok and type(p) == "table" then
+    if mission.playerSystem ~= nil and type(mission.playerSystem.getPlayerByConnection) == "function" then
+        local p = mission.playerSystem:getPlayerByConnection(connection)
+        if type(p) == "table" then
             player = p
         end
     end
     local user
     local userManager = mission.userManager
     if userManager ~= nil then
-        if player ~= nil and player.userId ~= nil and userManager.getUserByUserId ~= nil then
-            local ok, u = pcall(userManager.getUserByUserId, userManager, player.userId)
-            if ok and type(u) == "table" then
+        if player ~= nil and player.userId ~= nil and type(userManager.getUserByUserId) == "function" then
+            local u = userManager:getUserByUserId(player.userId)
+            if type(u) == "table" then
                 user = u
             end
         end
-        if user == nil and userManager.getUserByConnection ~= nil then
-            local ok, u = pcall(userManager.getUserByConnection, userManager, connection)
-            if ok and type(u) == "table" then
+        if user == nil and type(userManager.getUserByConnection) == "function" then
+            local u = userManager:getUserByConnection(connection)
+            if type(u) == "table" then
                 user = u
             end
         end
     end
     local isAdmin = false
-    if user ~= nil and user.getIsMasterUser ~= nil then
-        local ok, admin = pcall(user.getIsMasterUser, user)
-        isAdmin = ok and admin == true
+    if user ~= nil and type(user.getIsMasterUser) == "function" then
+        isAdmin = user:getIsMasterUser() == true
     end
     return isAdmin, player ~= nil and player.farmId or nil
 end
@@ -669,19 +672,14 @@ function P.serverAction(action, data, connection)
         return
     end
     if action == BananaRegrowResearchEvent.ACTION_PROBE then
-        local ok, err = pcall(P.runProbe)
-        if not ok then
-            log("server probe failed: %s", tostring(err))
-        end
+        P.runProbe()
     elseif action == BananaRegrowResearchEvent.ACTION_TRACE then
         if data.on and not P.tracing then
-            P.traceConnection = connection
-            local ok, err = pcall(P.startTrace)
-            if not ok then
-                log("server trace failed: %s", tostring(err))
-                pcall(P.stopTrace)
-                P.traceConnection = nil
+            if #P.wrapped > 0 then
+                P.stopTrace()    -- left over from a trace start that failed
             end
+            P.traceConnection = connection
+            P.startTrace()
         elseif not data.on and (P.tracing or #P.wrapped > 0) then
             P.stopTrace()
             P.traceConnection = nil
@@ -690,19 +688,23 @@ function P.serverAction(action, data, connection)
         local H = BananaRegrowHarvest
         if H ~= nil then
             local radius = math.max(1, math.min(tonumber(data.radius) or 30, 100))
-            H.logConnection = connection
-            local ok, err = pcall(H.collectLoose, data.x, data.z, radius, farmId)
-            H.logConnection = nil
-            if not ok then
-                log("collect failed: %s", tostring(err))
+            if type(data.x) == "number" and type(data.z) == "number" then
+                H.logConnection = connection
+                H.collectLoose(data.x, data.z, radius, farmId)
+                H.logConnection = nil
+            else
+                log("collect: no position given")
             end
         end
     elseif action == BananaRegrowResearchEvent.ACTION_RIPEN then
         local radius = math.max(0.5, math.min(tonumber(data.radius) or P.RIPEN_DEFAULT_RADIUS, P.RIPEN_MAX_RADIUS))
-        local ok, changed, found = pcall(P.ripen, data.x, data.z, radius, farmId)
-        if not ok then
-            log("ripen failed: %s", tostring(changed))
-        elseif changed == nil then
+        local changed, found
+        if type(data.x) == "number" and type(data.z) == "number" then
+            changed, found = P.ripen(data.x, data.z, radius, farmId)
+        else
+            found = "no position given"
+        end
+        if changed == nil then
             log("ripen: %s", tostring(found))
         else
             log("ripen: %d of %d banana plants within %.1f m of %.1f %.1f made ripe (farm %s)", changed, found, radius,
@@ -717,11 +719,11 @@ end
 ---------------------------------------------------------------------------------------------------------------------
 --- where a function comes from ("file:line"), or "?" when the debug library is not available
 local function sourceOf(fn)
-    if debug == nil or debug.getinfo == nil then
+    if debug == nil or debug.getinfo == nil or type(fn) ~= "function" then
         return "?"
     end
-    local ok, info = pcall(debug.getinfo, fn, "S")
-    if not ok or type(info) ~= "table" then
+    local info = debug.getinfo(fn, "S")
+    if type(info) ~= "table" then
         return "?"
     end
     return string.format("%s:%s", tostring(info.short_src or info.source), tostring(info.linedefined))
@@ -739,8 +741,8 @@ local function logHookChain(label, fn, depth, seen)
         return
     end
     for i = 1, 20 do
-        local ok, name, value = pcall(debug.getupvalue, fn, i)
-        if not ok or name == nil then
+        local name, value = debug.getupvalue(fn, i)
+        if name == nil then
             break
         end
         if type(value) == "function" then
@@ -856,10 +858,11 @@ function P.runMenuProbe()
         log("points selector state: %s (owned = %s)", tostring(frame.pointsSelector:getState()), tostring(cls.POINTS_OWNED))
     end
 
-    local ok, production, productionPoint = pcall(frame.getSelectedProduction, frame)
-    if not ok then
-        log("getSelectedProduction failed: %s", tostring(production))
-    elseif type(productionPoint) ~= "table" then
+    local production, productionPoint
+    if type(frame.getSelectedProduction) == "function" then
+        production, productionPoint = frame:getSelectedProduction()
+    end
+    if type(productionPoint) ~= "table" then
         log("no production point selected (select the washing station in the list first)")
     else
         log("selected production: %s", type(production) == "table" and short(production.id or production.name) or tostring(production))
@@ -899,21 +902,22 @@ local function isClientOnly()
 end
 
 local function sendToServer(action, data)
-    local ok = pcall(function()
-        g_client:getServerConnection():sendEvent(BananaRegrowResearchEvent.new(action, data))
-    end)
-    return ok
+    if g_client == nil or type(g_client.getServerConnection) ~= "function" or BananaRegrowResearchEvent == nil then
+        return false
+    end
+    local connection = g_client:getServerConnection()
+    if connection == nil or type(connection.sendEvent) ~= "function" then
+        return false
+    end
+    connection:sendEvent(BananaRegrowResearchEvent.new(action, data))
+    return true
 end
 
 ---------------------------------------------------------------------------------------------------------------------
 -- console commands
 ---------------------------------------------------------------------------------------------------------------------
 function P:consoleProbe()
-    local ok, result = pcall(P.runProbe)
-    if not ok then
-        print("[BananaRegrow:probe] failed: " .. tostring(result))
-        result = "[BananaRegrow] probe failed, see log.txt"
-    end
+    local result = P.runProbe()
     if isClientOnly() and sendToServer(BananaRegrowResearchEvent.ACTION_PROBE) then
         result = result .. " (the server's probe follows as [server] lines)"
     end
@@ -921,12 +925,7 @@ function P:consoleProbe()
 end
 
 function P:consoleMenu()
-    local ok, result = pcall(P.runMenuProbe)
-    if not ok then
-        print("[BananaRegrow:probe] menu probe failed: " .. tostring(result))
-        return "[BananaRegrow] menu probe failed, see log.txt"
-    end
-    return result
+    return P.runMenuProbe()
 end
 
 function P:consoleTrace()
@@ -937,12 +936,7 @@ function P:consoleTrace()
         end
         return "[BananaRegrow] trace OFF, see log.txt"
     end
-    local ok, n = pcall(P.startTrace)
-    if not ok then
-        print("[BananaRegrow:trace] failed: " .. tostring(n))
-        pcall(P.stopTrace)
-        return "[BananaRegrow] trace failed, see log.txt"
-    end
+    local n = P.startTrace()
     if isClientOnly() then
         sendToServer(BananaRegrowResearchEvent.ACTION_TRACE, {on = true})
     end
@@ -989,11 +983,14 @@ function P:consoleCollect(radiusText)
 end
 
 function P:loadMap()
-    pcall(addConsoleCommand, "brProbe", "Banana Regrow: write the DLC's banana/rail/machete classes and objects to the log", "consoleProbe", P)
-    pcall(addConsoleCommand, "brMenu", "Banana Regrow: write the production menu's buttons and their hooks to the log (open the menu on the washing station first)", "consoleMenu", P)
-    pcall(addConsoleCommand, "brTrace", "Banana Regrow: ON/OFF log every call into the banana/rail/machete code (use the machete while on)", "consoleTrace", P)
-    pcall(addConsoleCommand, "brCollect", "Banana Regrow: put the banana bunches lying loose within [radius=30] m into your washing station", "consoleCollect", P)
-    pcall(addConsoleCommand, "brRipen", "Banana Regrow (research): make your banana plants within [radius=3] m ripe", "consoleRipen", P)
+    if addConsoleCommand == nil then
+        return
+    end
+    addConsoleCommand("brProbe", "Banana Regrow: write the DLC's banana/rail/machete classes and objects to the log", "consoleProbe", P)
+    addConsoleCommand("brMenu", "Banana Regrow: write the production menu's buttons and their hooks to the log (open the menu on the washing station first)", "consoleMenu", P)
+    addConsoleCommand("brTrace", "Banana Regrow: ON/OFF log every call into the banana/rail/machete code (use the machete while on)", "consoleTrace", P)
+    addConsoleCommand("brCollect", "Banana Regrow: put the banana bunches lying loose within [radius=30] m into your washing station", "consoleCollect", P)
+    addConsoleCommand("brRipen", "Banana Regrow (research): make your banana plants within [radius=3] m ripe", "consoleRipen", P)
 end
 
 function P:update(dt)
@@ -1004,7 +1001,7 @@ function P:update(dt)
         P.newToolTimer = (P.newToolTimer or 0) - dt
         if P.newToolTimer <= 0 then
             P.newToolTimer = 250
-            pcall(P.wrapNewHandTools)
+            P.wrapNewHandTools()
         end
     end
 end
@@ -1015,11 +1012,13 @@ function P:deleteMap()
     end
     P.relayQueue = {}
     P.traceConnection = nil
-    pcall(removeConsoleCommand, "brProbe")
-    pcall(removeConsoleCommand, "brMenu")
-    pcall(removeConsoleCommand, "brTrace")
-    pcall(removeConsoleCommand, "brRipen")
-    pcall(removeConsoleCommand, "brCollect")
+    if removeConsoleCommand ~= nil then
+        removeConsoleCommand("brProbe")
+        removeConsoleCommand("brMenu")
+        removeConsoleCommand("brTrace")
+        removeConsoleCommand("brRipen")
+        removeConsoleCommand("brCollect")
+    end
 end
 
 addModEventListener(P)
